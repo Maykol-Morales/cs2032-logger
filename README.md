@@ -1,103 +1,78 @@
-# utec_logger
+# cs2032-logger
 
-Un logger personalizado para Python con salida en consola a color, guardado en archivos locales y soporte opcional para AWS CloudWatch Logs.
+> Proyecto del curso **CS2032 – Cloud Computing** · UTEC
 
-## 🚀 Características
+[![PyPI](https://img.shields.io/pypi/v/utec-logger)](https://pypi.org/project/utec-logger/)
+[![CI](https://github.com/Maykol-Morales/cs2032-logger/actions/workflows/publish.yml/badge.svg)](https://github.com/Maykol-Morales/cs2032-logger/actions/workflows/publish.yml)
 
-- Logs a consola con colores según el nivel (INFO, WARNING, ERROR, CRITICAL)
-- Logs persistentes en archivos locales (`logs/log-<file>-<timestamp>.log`)
-- Integración opcional con AWS CloudWatch para centralizar logs
-- Singleton: mantiene una única instancia del logger
+**utec-logger** es un logger para Python con salida en consola a color, archivos locales y envío opcional a **AWS CloudWatch Logs**.
 
----
+📖 Documentación: https://utec-logger.github.io
 
-## 🧑‍💻 Instalación
+## Características
 
-Clona o añade este módulo en tu proyecto:
+- Consola con colores por nivel (`INFO`, `WARNING`, `ERROR`, `CRITICAL`)
+- Archivos locales en `logs/log-<archivo>-<timestamp>.log`
+- Envío opcional a CloudWatch Logs, activado solo con variables de entorno
+- Indica el archivo y la línea desde donde se generó cada log
+- Singleton: una única instancia en toda la aplicación
+- Un fallo de CloudWatch nunca interrumpe tu aplicación
 
-```bash
-git clone <repositorio>
-```
-
-Importa el logger en tus scripts:
-
-```python
-from utec_logger.logger import logger, info, warning, error, critical, Level
-```
-
----
-
-## 📝 Uso
-
-```python
-logger.info("Este es un mensaje informativo")
-logger.warning("Advertencia")
-logger.error("Error")
-logger.critical("Crítico")
-
-# O usa funciones directas:
-info("Mensaje directo tipo info")
-```
-
----
-
-## 🧾 Salida esperada
-
-En consola (con colores):
-
-```
-2025-05-03 12:30:01.123 | INFO | main.py:23 | Este es un mensaje informativo
-```
-
-En archivo:
-
-```
-logs/log-main-2025-05-03-12-30-01.log
-```
-
----
-
-## ☁️ Integración con AWS CloudWatch (opcional)
-
-Si defines las variables de entorno necesarias, el logger también enviará los eventos a AWS CloudWatch Logs.
-
-### 🔐 Variables necesarias
-
-Debes definir las siguientes variables de entorno antes de ejecutar tu aplicación:
+## Instalación
 
 ```bash
-export AWS_ACCESS_KEY_ID=your-access-key-id
-export AWS_SECRET_ACCESS_KEY=your-secret-access-key
-export AWS_SESSION_TOKEN=your-session-token   # Opcional, si usas roles temporales
-export AWS_REGION=us-east-1
-export CLOUD_WATCH_GROUP=your-log-group-name
-export CLOUD_WATCH_STREAM=your-log-stream-name
+pip install utec-logger
 ```
 
-Si prefieres usar un archivo `.env`:
+Requiere Python 3.8+.
 
-```env
-AWS_ACCESS_KEY_ID=your-access-key-id
-AWS_SECRET_ACCESS_KEY=your-secret-access-key
-AWS_SESSION_TOKEN=your-session-token
-AWS_REGION=us-east-1
-CLOUD_WATCH_GROUP=my-app-logs
-CLOUD_WATCH_STREAM=dev-instance
-```
-
-Y luego en tu código, carga estas variables con `python-dotenv`:
+## Uso
 
 ```python
-from dotenv import load_dotenv
+from utec_logger import logger
 
-load_dotenv()
+logger.info("Iniciando el sistema")
+logger.warning("Uso de memoria alto")
+logger.error("No se pudo conectar a la base de datos")
+logger.critical("Servicio caído")
 ```
 
----
+También puedes usar la clase y los niveles directamente:
 
-## 🧪 Verificación
+```python
+from utec_logger import Logger, Level
 
-Al iniciar, el logger mostrará en consola si AWS y CloudWatch han sido correctamente configurados:
+log = Logger()
+log.log("Mensaje personalizado", level=Level.ERROR)
+```
+
+### Salida
+
+Consola y archivo:
+
+```
+2025-05-03 12:30:01.123 | INFO | main.py:23 | Iniciando el sistema
+```
+
+CloudWatch (el timestamp va en el evento):
+
+```
+INFO | main.py:23 | Iniciando el sistema
+```
+
+## AWS CloudWatch (opcional)
+
+El envío se activa cuando `CLOUD_WATCH_GROUP` y `CLOUD_WATCH_STREAM` están definidas. La conexión se hace en el primer log (no al importar) y el grupo y el stream se crean si no existen.
+
+| Variable | Descripción |
+|---|---|
+| `CLOUD_WATCH_GROUP` | Grupo de logs |
+| `CLOUD_WATCH_STREAM` | Stream de logs |
+| `AWS_REGION` | Región de AWS |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Credenciales (opcional si usas un rol de IAM) |
+| `AWS_SESSION_TOKEN` | Para credenciales temporales (por ejemplo, AWS Academy) |
+
+Al conectarse, el logger muestra el estado en consola:
 
 ```
 AWS Ready: 123456789012
@@ -106,43 +81,25 @@ CloudWatch Stream: dev-instance
 CloudWatch Ready
 ```
 
----
-
-## 📁 Estructura de logs
-
-* Los archivos `.log` se guardan en la carpeta `logs/` dentro del directorio donde se ejecuta el programa.
-* Cada archivo de log contiene todos los eventos desde que se inició el script.
-
----
-
-## ✅ Requisitos
-
-* Python 3.7+
-* `boto3`
-* (Opcional) `python-dotenv` para cargar `.env`
-
----
-
-## 📦 Instalación de dependencias
+## Desarrollo
 
 ```bash
-pip install boto3 python-dotenv
+pip install -e ".[test]"
+pytest
 ```
 
----
+Las pruebas usan [moto](https://github.com/getmoto/moto) para simular CloudWatch, sin tocar AWS.
 
-## 🧊 Ejemplo completo
+## Publicación en PyPI
 
-```python
-from utec_logger.logger import logger, info, warning, error, critical
+El workflow [`publish.yml`](.github/workflows/publish.yml) corre las pruebas en cada push y publica en PyPI al crear un **release** en GitHub, usando [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (sin tokens en el repo):
 
-logger.info("Iniciando el sistema")
-logger.warning("Este es un warning")
-error("Ocurrió un error")
-critical("Error crítico")
-```
+1. Sube la versión en `pyproject.toml`.
+2. Crea un release con el tag `v<versión>` (por ejemplo `v1.8`). El workflow verifica que coincidan.
 
----
+## Proyectos relacionados
+
+- [cs2032-logger-web](https://github.com/Maykol-Morales/cs2032-logger-web) — visor web de los archivos de log
 
 ## Créditos
 

@@ -1,25 +1,31 @@
 [project]
 name = "utec_logger"
-version = "1.7"
-description = "UTEC Logger"
+version = "1.8"
+description = "Logger para Python con consola a color, archivos locales y AWS CloudWatch Logs"
 authors = [{ name = "Maykol Morales", email = "maykol.morales@utec.edu.pe" }]
 readme = "README.md"
 requires-python = ">=3.8"
+keywords = ["logger", "logging", "aws", "cloudwatch", "utec"]
 
 dependencies = [
-    "boto3==1.35.54",
-    "botocore==1.35.54",
-    "certifi==2024.8.30",
-    "charset-normalizer==3.4.0",
-    "idna==3.10",
-    "jmespath==1.0.1",
-    "python-dateutil==2.9.0.post0",
-    "requests==2.32.3",
-    "s3transfer==0.10.3",
-    "six==1.16.0",
-    "urllib3==2.2.3"
+    "boto3>=1.26"
 ]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "moto[logs,sts]>=5"
+]
+
+[project.urls]
+Homepage = "https://github.com/Maykol-Morales/cs2032-logger"
+Documentation = "https://utec-logger.github.io"
+Source = "https://github.com/Maykol-Morales/cs2032-logger"
+Issues = "https://github.com/Maykol-Morales/cs2032-logger/issues"
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["utec_logger"]

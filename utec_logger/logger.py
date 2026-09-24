@@ -24,7 +24,7 @@ class Level(Enum):
 
 def _get_time_():
     now = datetime.now()
-    return now.microsecond // 1000, now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+    return int(now.timestamp() * 1000), now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
 
 def _get_current_frame_():
@@ -91,8 +91,21 @@ class Logger:
 
             makedirs(self.logs_folder, exist_ok=True)
 
+            # CloudWatch se inicializa en el primer log, no al importar el paquete
+            self._cloud_watch_checked = False
+
             self._init_ = True
-            self._init_cloud_watch()
+
+    def _ensure_cloud_watch(self):
+        if self._cloud_watch_checked:
+            return
+
+        self._cloud_watch_checked = True
+
+        if not self.cloud_watch_group or not self.cloud_watch_stream:
+            return
+
+        self._init_cloud_watch()
 
     def _check_aws_credentials(self):
         try:
@@ -149,21 +162,25 @@ class Logger:
 
             print('CloudWatch Ready')
         except Exception as e:
+            self.cloud_watch = None
             print(f'CloudWatch is not SET: {e}')
 
-    def _send_to_cloud_watch(self, message: str, timestamp: int, where: str, level: Level = Level.INFO):
-        self.cloud_watch.put_log_events(
-            logGroupName=self.cloud_watch_group,
-            logStreamName=self.cloud_watch_stream,
-            logEvents=[
-                {
-                    'timestamp': timestamp,
-                    'level': level.value,
-                    'where': where,
-                    'message': message,
-                }
-            ]
-        )
+    def _send_to_cloud_watch(self, message: str, timestamp: int):
+        # CloudWatch solo acepta timestamp (ms desde epoch) y message por evento
+        try:
+            self.cloud_watch.put_log_events(
+                logGroupName=self.cloud_watch_group,
+                logStreamName=self.cloud_watch_stream,
+                logEvents=[
+                    {
+                        'timestamp': timestamp,
+                        'message': message,
+                    }
+                ]
+            )
+        except Exception as e:
+            # Un fallo de CloudWatch no debe interrumpir la aplicación
+            print(f'CloudWatch error: {e}')
 
     def _write_to_file_(self, message: str):
         frame = _get_current_frame_()
@@ -177,13 +194,15 @@ class Logger:
         log_time_ms, log_time_str = _get_time_()
         log_where = _get_where_()
 
-        if self.cloud_watch:
-            self._send_to_cloud_watch(message, timestamp=log_time_ms, where=log_where, level=level)
-
         formatted = f'{log_time_str} | {level.name} | {log_where} | {message}'
 
         print(f'{level.color}{formatted}{level.reset}')
         self._write_to_file_(formatted)
+
+        self._ensure_cloud_watch()
+
+        if self.cloud_watch:
+            self._send_to_cloud_watch(f'{level.name} | {log_where} | {message}', timestamp=log_time_ms)
 
     def info(self, message: str):
         self.log(message, level=Level.INFO)
