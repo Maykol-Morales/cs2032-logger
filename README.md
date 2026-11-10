@@ -111,7 +111,7 @@ Desarrollado con fines educativos para el curso de **Cloud Computing - UTEC**.
 
 - **Maykol Morales**
     - *[maykol.morales@utec.edu.pe](mailto:maykol.morales@utec.edu.pe)*
-    - ACL de Cloud Computing
+    - Project Manager y ACL de Cloud Computing
 
 - **Gino Daza**
     - *[gino.daza@utec.edu.pe](mailto:gino.daza@utec.edu.pe)*
